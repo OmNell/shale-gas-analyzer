@@ -1,0 +1,5 @@
+crewai>=0.28.0
+pandas
+numpy
+litellm
+python-dotenv
