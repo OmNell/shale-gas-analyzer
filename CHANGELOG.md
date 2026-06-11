@@ -1,36 +1,39 @@
-# Changelog
+# 变更记录
 
-All notable changes to this project are tracked here.
+本文件记录项目的重要版本变化。
+
+## [0.2.0] - 2026-06-11
+
+### 新增
+
+- 新增 `start_project.py` 一键启动入口，默认启动本地网页控制台。
+- 新增本地网页控制台，可上传 CSV、启动/停止 Agent、查看实时日志和最终报告。
+- 新增 RAG 知识库流程，支持 Markdown 工程知识和论文 PDF。
+- 新增 RAG 检索工具，并接入工程决策 Agent。
+- 新增中英文工程术语扩展，提升中文问题召回英文论文的能力。
+- 新增 `knowledge_base/` 原始知识库目录和占位文件。
+
+### 改进
+
+- CSV 读取增加编码容错和数据预处理，自动处理空值、空列、空行和常见异常占位符。
+- 前端上传的 CSV 可作为当前运行的数据源，不再固定读取本地数据文件。
+- 最终报告任务要求明确列出 RAG query、来源文件和 PDF 页码。
+- `.gitignore` 忽略 `.env`、上传数据、向量索引、处理产物、日志和虚拟环境。
+- README 改为中文说明，补充启动、配置、RAG、网页端和安全提交说明。
+
+### 安全
+
+- 真实 `.env` 不进入仓库。
+- `.env.example` 只保留占位符和公开配置项。
+- 向量索引与处理后的知识库文件不提交，只提交原始知识资料和目录占位文件。
 
 ## [0.1.0] - 2026-06-02
 
-### Added
+### 新增
 
-- Initial CrewAI shale gas production analysis workflow.
-- Stable sequential production pipeline.
-- Hierarchical manager pipeline option.
-- CSV data loading and decline metric calculation tools.
-- Generated production report output.
-- Public `.env.example` configuration template.
-- Git ignore rules that keep `.env`, logs, caches, and build artifacts out of Git.
-
-### Usage
-
-Install locally:
-
-```powershell
-pip install -e .
-```
-
-Run the stable pipeline:
-
-```powershell
-python -m shale_gas_analyzer.main
-```
-
-Run for a specific well:
-
-```powershell
-python -m shale_gas_analyzer.main X2
-```
-
+- 初始 CrewAI 页岩气生产分析流程。
+- 稳定顺序流程和层级管理流程。
+- CSV 数据读取与递减指标计算工具。
+- 生产分析报告输出。
+- 公开 `.env.example` 配置模板。
+- 基础 Git 忽略规则，避免提交 `.env`、日志、缓存和构建产物。

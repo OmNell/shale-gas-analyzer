@@ -15,7 +15,11 @@ os.environ.setdefault("LITELLM_NUM_RETRIES", "3")
 from crewai import Agent, Crew, LLM, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
-from shale_gas_analyzer.tools import calculate_decline_metrics_tool, read_shale_data_tool
+from shale_gas_analyzer.tools import (
+    calculate_decline_metrics_tool,
+    read_shale_data_tool,
+    retrieve_engineering_knowledge_tool,
+)
 
 
 @CrewBase
@@ -65,6 +69,7 @@ class ShaleGasAnalyzerCrew:
         return Agent(
             config=self.agents_config["petroleum_engineer"],
             llm=self.thinking_glm_llm,
+            tools=[retrieve_engineering_knowledge_tool],
             max_iter=3,
             max_execution_time=self.agent_max_execution_time,
             max_rpm=self.crew_max_rpm,

@@ -9,7 +9,13 @@ try:
 except ImportError:  # pragma: no cover - compatibility with some CrewAI releases
     from crewai_tools import tool
 
-from shale_gas_analyzer.tools.data_utils import find_column, locate_dataset, numeric_series, read_csv_robust
+from shale_gas_analyzer.tools.data_utils import (
+    find_column,
+    locate_dataset,
+    numeric_series,
+    preprocess_production_dataframe,
+    read_csv_robust,
+)
 
 
 def _safe_mean(series: pd.Series) -> float:
@@ -43,14 +49,13 @@ def calculate_decline_metrics_tool(well_name: str = "AUTO") -> str:
         return f"数据集定位失败：{exc}"
 
     try:
-        df = read_csv_robust(selection.csv_path)
+        df = preprocess_production_dataframe(read_csv_robust(selection.csv_path))
     except Exception as exc:
         return f"读取数据文件失败：{selection.csv_path}；错误：{exc}"
 
     if df.empty:
         return f"数据文件已读取但为空：{selection.csv_path}"
 
-    df.columns = [str(col).strip() for col in df.columns]
     recent_df = df.tail(30).copy()
 
     gas_col = find_column(

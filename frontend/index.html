@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shale Gas Agent Console</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <h1>Shale Gas Agent</h1>
+            <p id="subtitle">页岩气生产分析控制台</p>
+          </div>
+        </div>
+        <div class="status-pill" id="statusPill">
+          <span class="pulse"></span>
+          <span id="statusText">Idle</span>
+        </div>
+      </section>
+
+      <section class="control-grid">
+        <form class="panel control-panel" id="runForm">
+          <div class="field-row">
+            <label for="wellName">井名</label>
+            <input id="wellName" name="wellName" placeholder="AUTO / X2" value="X2" />
+          </div>
+
+          <div class="upload-row">
+            <input id="dataFile" type="file" accept=".csv,text/csv" />
+            <label for="dataFile">
+              <span class="button-icon">+</span>
+              <span id="dataFileLabel">上传生产 CSV</span>
+            </label>
+          </div>
+
+          <div class="segmented" role="group" aria-label="运行模式">
+            <input type="radio" id="modeRun" name="mode" value="run" checked />
+            <label for="modeRun">稳定流程</label>
+            <input type="radio" id="modeHierarchical" name="mode" value="hierarchical" />
+            <label for="modeHierarchical">层级流程</label>
+          </div>
+
+          <div class="action-row">
+            <button type="submit" class="primary" id="startBtn">
+              <span class="button-icon">▶</span>
+              <span>开始运行</span>
+            </button>
+            <button type="button" class="secondary" id="stopBtn" disabled>
+              <span class="button-icon">■</span>
+              <span>停止</span>
+            </button>
+          </div>
+        </form>
+
+        <section class="panel option-panel">
+          <label class="switch-row">
+            <span>启动前更新 RAG</span>
+            <input type="checkbox" id="ragEnabled" checked />
+          </label>
+          <label class="switch-row">
+            <span>强制重建知识库</span>
+            <input type="checkbox" id="ragRebuild" />
+          </label>
+        </section>
+
+        <section class="panel metrics-panel">
+          <div class="metric">
+            <span>运行编号</span>
+            <strong id="runId">-</strong>
+          </div>
+          <div class="metric">
+            <span>阶段</span>
+            <strong id="phaseName">待命</strong>
+          </div>
+          <div class="metric">
+            <span>耗时</span>
+            <strong id="elapsed">00:00</strong>
+          </div>
+        </section>
+
+        <section class="panel timeline-panel">
+          <ol class="timeline" id="timeline">
+            <li data-phase="rag"><span></span><strong>RAG</strong></li>
+            <li data-phase="data"><span></span><strong>数据</strong></li>
+            <li data-phase="engineering"><span></span><strong>工程</strong></li>
+            <li data-phase="report"><span></span><strong>报告</strong></li>
+          </ol>
+        </section>
+      </section>
+
+      <section class="workspace">
+        <section class="panel log-panel">
+          <div class="panel-head">
+            <div>
+              <h2>实时运行</h2>
+              <p>Agent 输出、RAG 检索和执行状态</p>
+            </div>
+            <button class="icon-button" id="clearLogBtn" type="button" title="清空日志">清空</button>
+          </div>
+          <pre id="logStream" aria-live="polite"></pre>
+        </section>
+
+        <section class="panel report-panel">
+          <div class="panel-head">
+            <div>
+              <h2>分析结果</h2>
+              <p>最终报告会在运行结束后自动刷新</p>
+            </div>
+            <button class="icon-button" id="refreshReportBtn" type="button" title="刷新报告">刷新</button>
+          </div>
+          <article id="reportView" class="report-view">
+            <p class="empty">暂无新报告</p>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

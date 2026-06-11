@@ -13,9 +13,17 @@ dist/
 *.log
 *.log.txt
 
+vector_store/chroma/*
+!vector_store/chroma/.gitkeep
+knowledge_base/processed/*
+!knowledge_base/processed/.gitkeep
+
 .venv/
 venv/
 env/
+
+data/uploads/*
+!data/uploads/.gitkeep
 
 .DS_Store
 Thumbs.db

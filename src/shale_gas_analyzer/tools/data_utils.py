@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,6 +12,24 @@ import pandas as pd
 
 
 AUTO_WELL_NAMES = {"", "auto", "automatic", "default", "dataset", "any", "all"}
+DATE_CANDIDATES = ["Date", "date", "Production_Date", "production_date", "日期", "生产日期", "鏃ユ湡", "鐢熶骇鏃ユ湡"]
+MISSING_TOKENS = {
+    "",
+    " ",
+    "-",
+    "--",
+    "---",
+    "nan",
+    "NaN",
+    "NAN",
+    "none",
+    "None",
+    "NULL",
+    "null",
+    "N/A",
+    "n/a",
+    "#N/A",
+}
 
 
 @dataclass(frozen=True)
@@ -74,15 +93,60 @@ def find_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
 def numeric_series(df: pd.DataFrame, column: str | None) -> pd.Series:
     if column is None or column not in df.columns:
         return pd.Series(dtype=float)
-    cleaned = df[column].astype(str).str.strip().replace({"": pd.NA, "nan": pd.NA, "None": pd.NA})
+    cleaned = (
+        df[column]
+        .astype(str)
+        .str.strip()
+        .replace({token: pd.NA for token in MISSING_TOKENS})
+        .str.replace(",", "", regex=False)
+    )
+    cleaned = cleaned.str.extract(r"([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)", expand=False)
     return pd.to_numeric(cleaned, errors="coerce")
 
 
 def read_csv_robust(csv_path: str, **kwargs: Any) -> pd.DataFrame:
-    try:
-        return pd.read_csv(csv_path, **kwargs)
-    except UnicodeDecodeError:
-        return pd.read_csv(csv_path, encoding="gbk", **kwargs)
+    encodings = [None, "utf-8-sig", "gbk", "gb18030"]
+    last_error: Exception | None = None
+    for encoding in encodings:
+        try:
+            if encoding is None:
+                return pd.read_csv(csv_path, **kwargs)
+            return pd.read_csv(csv_path, encoding=encoding, **kwargs)
+        except UnicodeDecodeError as exc:
+            last_error = exc
+            continue
+    if last_error:
+        raise last_error
+    return pd.read_csv(csv_path, **kwargs)
+
+
+def preprocess_production_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize a raw production CSV into a safer analysis dataframe."""
+    if df.empty:
+        return df.copy()
+
+    cleaned = df.copy()
+    cleaned.columns = [str(col).strip() for col in cleaned.columns]
+    cleaned = cleaned.loc[:, [col for col in cleaned.columns if col and not str(col).lower().startswith("unnamed:")]]
+    if cleaned.empty:
+        return cleaned
+
+    cleaned = cleaned.replace({token: pd.NA for token in MISSING_TOKENS})
+    cleaned = cleaned.dropna(axis=0, how="all").dropna(axis=1, how="all")
+    if cleaned.empty:
+        return cleaned
+
+    for col in cleaned.select_dtypes(include=["object"]).columns:
+        cleaned[col] = cleaned[col].map(lambda value: value.strip() if isinstance(value, str) else value)
+
+    date_col = find_column(cleaned, DATE_CANDIDATES)
+    if date_col is not None:
+        parsed = pd.to_datetime(cleaned[date_col], errors="coerce")
+        cleaned = cleaned.assign(__parsed_date=parsed)
+        cleaned = cleaned.sort_values("__parsed_date", na_position="last").drop(columns=["__parsed_date"])
+
+    cleaned = cleaned.reset_index(drop=True)
+    return cleaned
 
 
 def _csv_files() -> list[str]:
@@ -98,6 +162,18 @@ def _csv_files() -> list[str]:
         key=lambda path: os.path.getmtime(path),
         reverse=True,
     )
+
+
+def _forced_csv_file() -> str | None:
+    value = os.getenv("SHALE_GAS_DATA_FILE", "").strip().strip('"').strip("'")
+    if not value:
+        return None
+    path = os.path.abspath(os.path.expanduser(value))
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"SHALE_GAS_DATA_FILE does not exist: {path}")
+    if not path.lower().endswith(".csv"):
+        raise ValueError(f"SHALE_GAS_DATA_FILE must be a CSV file: {path}")
+    return path
 
 
 def _detect_well_id(csv_path: str) -> str:
@@ -121,6 +197,16 @@ def _detect_well_id(csv_path: str) -> str:
 def locate_dataset(well_name: Any) -> DatasetSelection:
     requested = extract_well_name(well_name)
     requested_key = requested.strip().lower()
+
+    forced_csv = _forced_csv_file()
+    if forced_csv:
+        return DatasetSelection(
+            requested_well=requested,
+            detected_well=_detect_well_id(forced_csv),
+            csv_path=forced_csv,
+            note="Using CSV uploaded from the web console for this run.",
+        )
+
     files = _csv_files()
 
     if not files:
